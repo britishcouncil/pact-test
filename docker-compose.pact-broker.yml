@@ -67,4 +67,4 @@ volumes:
 #    - Admin: pact_broker / pact_broker_password
 #    - Read-only: viewer / viewer_password
 # 4. Stop the broker: docker-compose -f docker-compose.pact-broker.yml down
-# 5. Clean volumes: docker-compose -f docker-compose.pact-broker.yml down -v 
+# 5. Clean volumes: docker-compose -f docker-compose.pact-broker.yml down -v

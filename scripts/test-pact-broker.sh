@@ -6,7 +6,6 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo `script ${SCRIPT_DIR}`
 COMPOSE_FILE="$(dirname "$SCRIPT_DIR")/docker-compose.pact-broker.yml"
 BROKER_URL="http://localhost:9292"
 ADMIN_CREDS="pact_broker:pact_broker_password"
