@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  pact-broker-db:
+    image: postgres:15-alpine
+    healthcheck:
+      test: psql postgres --command "select 1" -U postgres
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pact_broker
+    volumes:
+      - pact-broker-db-volume:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Using 5433 to avoid conflicts with existing PostgreSQL
+    networks:
+      - pact-network
+
+  pact-broker:
+    image: pactfoundation/pact-broker:latest
+    depends_on:
+      pact-broker-db:
+        condition: service_healthy
+    environment:
+      PACT_BROKER_DATABASE_URL: "postgresql://postgres:password@pact-broker-db/pact_broker"
+      PACT_BROKER_BASIC_AUTH_USERNAME: pact_broker
+      PACT_BROKER_BASIC_AUTH_PASSWORD: pact_broker_password
+      PACT_BROKER_BASIC_AUTH_READ_ONLY_USERNAME: viewer
+      PACT_BROKER_BASIC_AUTH_READ_ONLY_PASSWORD: viewer_password
+      PACT_BROKER_PUBLIC_HEARTBEAT: true
+      PACT_BROKER_DATABASE_CLEAN_ENABLED: true
+      PACT_BROKER_DATABASE_CLEAN_DRY_RUN: false
+      PACT_BROKER_DATABASE_CLEAN_OVERWRITTEN_DATA_MAX_AGE: 7
+      PACT_BROKER_DATABASE_CLEAN_UNREFERENCED_DATA_MAX_AGE: 90
+      PACT_BROKER_LOG_LEVEL: INFO
+      # Enable webhook support
+      PACT_BROKER_WEBHOOK_HOST_WHITELIST: "localhost,127.0.0.1,host.docker.internal"
+      # Enable matrix badges
+      PACT_BROKER_SHIELDS_IO_BASE_URL: "https://img.shields.io"
+    ports:
+      - "9292:9292"
+    volumes:
+      - pact-broker-logs:/var/log
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9292/diagnostic/status/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pact-network
+
+networks:
+  pact-network:
+    driver: bridge
+
+volumes:
+  pact-broker-db-volume:
+  pact-broker-logs:
+
+# Usage Instructions:
+# 1. Start the Pact Broker: docker-compose -f docker-compose.pact-broker.yml up -d
+# 2. Access the broker UI: http://localhost:9292
+# 3. Login credentials:
+#    - Admin: pact_broker / pact_broker_password
+#    - Read-only: viewer / viewer_password
+# 4. Stop the broker: docker-compose -f docker-compose.pact-broker.yml down
+# 5. Clean volumes: docker-compose -f docker-compose.pact-broker.yml down -v 
